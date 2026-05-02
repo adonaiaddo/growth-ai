@@ -250,3 +250,70 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes cursor-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Blinking cursor while streaming */
+.prose-ai-streaming > :last-child::after {
+  content: "▌";
+  color: var(--accent-violet);
+  animation: blink-caret 0.75s step-end infinite;
+  margin-left: 1px;
+}
+
+/* Cursor fades out when streaming finishes */
+.prose-ai-stream-end > :last-child::after {
+  content: "▌";
+  color: var(--accent-violet);
+  margin-left: 1px;
+  animation: cursor-fade-out 0.5s ease-out forwards;
+}
+
+/* Collapsed long messages — gradient mask fades content to transparent at bottom */
+.message-collapsed {
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+/* ── Recharts dark theme ───────────────────────────────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+.recharts-tooltip-cursor {
+  stroke: rgba(139, 92, 246, 0.3);
+}
+.recharts-text {
+  fill: var(--foreground-muted);
+  font-size: 11px;
+}
+.recharts-default-tooltip {
+  background: #1a1a2e !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+/* Slide-in animation for panels */
+@keyframes slide-in-from-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-in.slide-in-from-right {
+  animation: slide-in-from-right 0.2s ease-out;
+}
+.animate-in.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

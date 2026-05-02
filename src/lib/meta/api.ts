@@ -4,6 +4,9 @@ import type {
   MetaAdSet,
   MetaAd,
   MetaInsights,
+  MetaInsightsFull,
+  MetaInsightsTimeSeries,
+  InsightParams,
 } from "./types";
 
 const GRAPH_API_BASE = "https://graph.facebook.com/v21.0";
@@ -84,15 +87,17 @@ export class MetaAPI {
     if (!res.ok) {
       const err = (data as Record<string, unknown>)?.error as Record<string, unknown> | undefined;
       const msg = (err?.message as string) ?? `HTTP ${res.status}: ${res.statusText}`;
+      const userMsg = err?.error_user_msg as string | undefined;
       const code = (err?.code as number) ?? res.status;
-      throw new Error(`Meta API error (${code}): ${msg}`);
+      throw new Error(`Meta API error (${code}): ${msg}${userMsg ? ` — ${userMsg}` : ""}`);
     }
 
     const obj = data as Record<string, unknown>;
     if (obj?.error) {
       const err = obj.error as Record<string, unknown>;
+      const userMsg = err?.error_user_msg as string | undefined;
       throw new Error(
-        `Meta API error (${err.code}): ${err.message}`
+        `Meta API error (${err.code}): ${err.message}${userMsg ? ` — ${userMsg}` : ""}`
       );
     }
 
@@ -230,6 +235,72 @@ export class MetaAPI {
       `/${objectId}/insights?fields=impressions,clicks,spend,ctr`
     );
     return data.data ?? [];
+  }
+
+  private buildInsightParams(params?: InsightParams): string {
+    if (!params) return "";
+    const parts: string[] = [];
+    if (params.datePreset) parts.push(`date_preset=${params.datePreset}`);
+    if (params.since) parts.push(`time_range={"since":"${params.since}","until":"${params.until ?? params.since}"}`);
+    return parts.length ? `&${parts.join("&")}` : "";
+  }
+
+  async getInsightsFull(objectId: string, params?: InsightParams): Promise<MetaInsightsFull | null> {
+    const fields = [
+      "impressions", "reach", "frequency", "clicks", "unique_clicks",
+      "ctr", "unique_ctr", "spend", "cpc", "cpm", "cpp",
+      "actions", "cost_per_action_type", "conversions",
+      "quality_ranking", "engagement_rate_ranking", "conversion_rate_ranking",
+      "date_start", "date_stop",
+    ].join(",");
+    const extra = this.buildInsightParams(params);
+    const data = await this.request<{ data: MetaInsightsFull[] }>(
+      `/${objectId}/insights?fields=${fields}${extra}`
+    );
+    return data.data?.[0] ?? null;
+  }
+
+  async getInsightsTimeSeries(objectId: string, params?: InsightParams): Promise<MetaInsightsTimeSeries[]> {
+    const fields = "impressions,clicks,spend,ctr,cpc,reach,date_start,date_stop";
+    const extra = this.buildInsightParams(params);
+    const data = await this.request<{ data: MetaInsightsTimeSeries[] }>(
+      `/${objectId}/insights?fields=${fields}&time_increment=1${extra}`
+    );
+    return data.data ?? [];
+  }
+
+  private async requestAllPages<T>(endpoint: string): Promise<T[]> {
+    let all: T[] = [];
+    let url = `${GRAPH_API_BASE}${endpoint}`;
+    const separator = endpoint.includes("?") ? "&" : "?";
+    url = `${url}${separator}access_token=${this.accessToken}&limit=200`;
+
+    while (url) {
+      const res = await fetch(url, { method: "GET" });
+      const data = await this.handleResponse<{ data: T[]; paging?: { next?: string } }>(res, endpoint);
+      all = all.concat(data.data ?? []);
+      url = data.paging?.next ?? "";
+    }
+    return all;
+  }
+
+  async getCampaignsPaginated(adAccountId: string): Promise<MetaCampaign[]> {
+    const actId = this.normalizeAdAccountId(adAccountId);
+    return this.requestAllPages<MetaCampaign>(
+      `/${actId}/campaigns?fields=id,name,objective,status,created_time,daily_budget,lifetime_budget`
+    );
+  }
+
+  async getAdSetsPaginated(campaignId: string): Promise<MetaAdSet[]> {
+    return this.requestAllPages<MetaAdSet>(
+      `/${campaignId}/adsets?fields=id,name,campaign_id,daily_budget,status,targeting,optimization_goal`
+    );
+  }
+
+  async getAdsPaginated(adSetId: string): Promise<MetaAd[]> {
+    return this.requestAllPages<MetaAd>(
+      `/${adSetId}/ads?fields=id,name,adset_id,status,creative{id,thumbnail_url,title,body}`
+    );
   }
 
   // --- Pixels ---

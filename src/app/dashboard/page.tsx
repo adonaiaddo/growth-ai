@@ -1,48 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { MetaCampaign, MetaAdSet, MetaAd } from "@/lib/meta/types";
-import { CampaignCard } from "../components/campaign-card";
-import { AdSetCard } from "../components/adset-card";
-import { AdCard } from "../components/ad-card";
+import { useState, useCallback } from "react";
+import type { MetaAdAccount, MetaCampaign, MetaAdSet, DatePreset, BreadcrumbItem, DashboardLevel } from "@/lib/meta/types";
+import { useDashboardData } from "@/app/hooks/use-dashboard-data";
+import { Breadcrumbs } from "../components/dashboard/breadcrumbs";
+import { DateRangePicker } from "../components/dashboard/date-range-picker";
+import { AccountsList } from "../components/dashboard/accounts-list";
+import { CampaignsView } from "../components/dashboard/campaigns-view";
+import { AdSetsView } from "../components/dashboard/adsets-view";
+import { AdsView } from "../components/dashboard/ads-view";
 import { MetaConnectButton } from "../components/meta-connect-button";
 
-interface DashboardData {
-  campaigns: MetaCampaign[];
-  adSets: MetaAdSet[];
-  ads: MetaAd[];
+interface AccountsResponse {
+  accounts: MetaAdAccount[];
   error?: string;
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(
-    new Set()
-  );
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
+  const [datePreset, setDatePreset] = useState<DatePreset>("last_7d");
 
-  useEffect(() => {
-    fetch("/api/dashboard")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setData({ campaigns: [], adSets: [], ads: [], error: "Failed to load" });
-        setLoading(false);
-      });
+  const { data, loading, error } = useDashboardData<AccountsResponse>("/api/dashboard");
+
+  const currentLevel: DashboardLevel = breadcrumbs.length === 0
+    ? "accounts"
+    : breadcrumbs[breadcrumbs.length - 1].level;
+
+  const currentId = breadcrumbs.length > 0
+    ? breadcrumbs[breadcrumbs.length - 1].id
+    : null;
+
+  const handleNavigate = useCallback((index: number) => {
+    if (index < 0) {
+      setBreadcrumbs([]);
+    } else {
+      setBreadcrumbs((prev) => prev.slice(0, index + 1));
+    }
   }, []);
 
-  const toggleCampaign = (id: string) => {
-    setExpandedCampaigns((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const drillDown = useCallback((level: DashboardLevel, id: string, label: string) => {
+    setBreadcrumbs((prev) => [...prev, { level, id, label }]);
+  }, []);
 
+  const handleSelectAccount = useCallback((account: MetaAdAccount) => {
+    drillDown("account", account.id, account.name || `Account ${account.account_id}`);
+  }, [drillDown]);
+
+  const handleSelectCampaign = useCallback((campaign: MetaCampaign) => {
+    drillDown("campaign", campaign.id, campaign.name);
+  }, [drillDown]);
+
+  const handleSelectAdSet = useCallback((adSet: MetaAdSet) => {
+    drillDown("adset", adSet.id, adSet.name);
+  }, [drillDown]);
+
+  // Loading state
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -58,7 +70,8 @@ export default function DashboardPage() {
     );
   }
 
-  if (data?.error === "Not connected to Meta") {
+  // Not connected
+  if (error === "HTTP 401" || data?.error === "Not connected to Meta") {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4">
         <h2 className="text-lg font-semibold text-foreground">
@@ -69,72 +82,68 @@ export default function DashboardPage() {
     );
   }
 
-  if (data?.error) {
+  // Error
+  if (error || data?.error) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-        <div className="text-4xl">&#x26A0;&#xFE0F;</div>
-        <h2 className="text-lg font-semibold text-red-400">
-          Something went wrong
-        </h2>
+        <h2 className="text-lg font-semibold text-red-400">Something went wrong</h2>
         <p className="text-sm text-foreground-muted max-w-md">
-          {data.error}
+          {error ?? data?.error}
         </p>
       </div>
     );
   }
 
-  if (!data?.campaigns?.length) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-        <div className="text-4xl">&#x1F4CA;</div>
-        <h2 className="text-lg font-semibold text-foreground">
-          No campaigns yet
-        </h2>
-        <p className="text-sm text-foreground-muted max-w-md">
-          Go to the Chat tab and ask Growth AI to create a campaign for you.
-          Your campaigns will appear here with their ad sets, ads, and
-          performance metrics.
-        </p>
-      </div>
-    );
-  }
+  const accounts = data?.accounts ?? [];
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <h2 className="text-lg font-semibold text-foreground mb-4">
-        Campaigns
-      </h2>
-      <div className="space-y-3 max-w-3xl">
-        {data.campaigns.map((campaign) => {
-          const campaignAdSets = data.adSets.filter(
-            (s) => s.campaign_id === campaign.id
-          );
-          return (
-            <CampaignCard
-              key={campaign.id}
-              campaign={campaign}
-              expanded={expandedCampaigns.has(campaign.id)}
-              onToggle={() => toggleCampaign(campaign.id)}
-            >
-              {campaignAdSets.length === 0 ? (
-                <p className="text-xs text-foreground-muted">No ad sets</p>
-              ) : (
-                campaignAdSets.map((adSet) => {
-                  const adSetAds = data.ads.filter(
-                    (a) => a.adset_id === adSet.id
-                  );
-                  return (
-                    <AdSetCard key={adSet.id} adSet={adSet}>
-                      {adSetAds.map((ad) => (
-                        <AdCard key={ad.id} ad={ad} />
-                      ))}
-                    </AdSetCard>
-                  );
-                })
-              )}
-            </CampaignCard>
-          );
-        })}
+    <div className="h-full overflow-y-auto">
+      {/* Toolbar */}
+      {breadcrumbs.length > 0 && (
+        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-lg border-b border-white/5">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <Breadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />
+            <div className="sm:ml-auto">
+              <DateRangePicker value={datePreset} onChange={setDatePreset} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date picker for accounts level */}
+      {breadcrumbs.length === 0 && (
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {currentLevel === "accounts" && (
+          <AccountsList accounts={accounts} onSelect={handleSelectAccount} />
+        )}
+
+        {currentLevel === "account" && currentId && (
+          <CampaignsView
+            accountId={currentId}
+            datePreset={datePreset}
+            onSelectCampaign={handleSelectCampaign}
+          />
+        )}
+
+        {currentLevel === "campaign" && currentId && (
+          <AdSetsView
+            campaignId={currentId}
+            datePreset={datePreset}
+            onSelectAdSet={handleSelectAdSet}
+          />
+        )}
+
+        {currentLevel === "adset" && currentId && (
+          <AdsView adSetId={currentId} datePreset={datePreset} />
+        )}
       </div>
     </div>
   );

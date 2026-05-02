@@ -469,7 +469,19 @@ export const createCampaign = tool({
     try {
       const api = new MetaAPI(token);
       const result = await api.createCampaign(adAccountId, { name, objective, status: "PAUSED" });
-      return { type: "campaign_created" as const, ...result };
+      const needsPixel = objective === "OUTCOME_SALES" || objective === "OUTCOME_LEADS";
+      return {
+        type: "campaign_created" as const,
+        ...result,
+        ...(needsPixel && {
+          requires_pixel: true,
+          warning:
+            `IMPORTANT: ${objective} campaigns require a Meta Pixel for conversion tracking. ` +
+            "You MUST call getPixels to find an existing pixel (or createPixel if none exist) " +
+            "and include { pixel_id, custom_event_type } in every ad set's promotedObject. " +
+            "Ad creation WILL FAIL without this.",
+        }),
+      };
     } catch (error) {
       return { type: "error" as const, message: `Failed to create campaign: ${error instanceof Error ? error.message : "Unknown error"}` };
     }

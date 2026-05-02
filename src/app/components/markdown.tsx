@@ -1,11 +1,34 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export function Markdown({ children }: { children: string }) {
+export function Markdown({ children, streaming }: { children: string; streaming?: boolean }) {
+  const [ending, setEnding] = useState(false);
+  const wasStreaming = useRef(false);
+
+  useEffect(() => {
+    if (streaming) {
+      wasStreaming.current = true;
+      setEnding(false);
+    } else if (wasStreaming.current) {
+      // Streaming just finished — play fade-out, then clean up
+      wasStreaming.current = false;
+      setEnding(true);
+      const timer = setTimeout(() => setEnding(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [streaming]);
+
+  const wrapperClass = streaming
+    ? "prose-ai prose-ai-streaming"
+    : ending
+      ? "prose-ai prose-ai-stream-end"
+      : "prose-ai";
+
   return (
-    <div className="prose-ai">
+    <div className={wrapperClass}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

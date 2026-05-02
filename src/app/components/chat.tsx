@@ -145,7 +145,10 @@ export function Chat() {
         )}
 
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+          />
         ))}
 
         {voiceState !== "idle" && (
@@ -173,22 +176,30 @@ export function Chat() {
           </div>
         )}
 
-        {isLoading && (
-          <div className="flex items-center gap-2 text-foreground-muted">
-            <div className="flex gap-1">
-              <span className="animate-shimmer-pulse h-2 w-2 rounded-full bg-violet-400" />
-              <span
-                className="animate-shimmer-pulse h-2 w-2 rounded-full bg-violet-400"
-                style={{ animationDelay: "0.15s" }}
-              />
-              <span
-                className="animate-shimmer-pulse h-2 w-2 rounded-full bg-violet-400"
-                style={{ animationDelay: "0.3s" }}
-              />
+        {/* Show "Thinking..." while waiting for first visible text */}
+        {isLoading && (() => {
+          const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
+          const hasVisibleText = lastAssistant?.parts.some(
+            p => p.type === "text" && p.text?.trim()
+          );
+          if (hasVisibleText) return null;
+          return (
+            <div className="flex items-center gap-2 text-foreground-muted">
+              <div className="flex gap-1">
+                <span className="animate-shimmer-pulse h-2 w-2 rounded-full bg-violet-400" />
+                <span
+                  className="animate-shimmer-pulse h-2 w-2 rounded-full bg-violet-400"
+                  style={{ animationDelay: "0.15s" }}
+                />
+                <span
+                  className="animate-shimmer-pulse h-2 w-2 rounded-full bg-violet-400"
+                  style={{ animationDelay: "0.3s" }}
+                />
+              </div>
+              <span className="text-sm">Thinking...</span>
             </div>
-            <span className="text-sm">Thinking...</span>
-          </div>
-        )}
+          );
+        })()}
 
         {error && (
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 backdrop-blur-sm p-3 text-sm text-red-400">

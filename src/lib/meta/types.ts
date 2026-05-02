@@ -51,6 +51,70 @@ export interface MetaInsights {
   date_stop: string;
 }
 
+export interface MetaAction {
+  action_type: string;
+  value: string;
+}
+
+export interface MetaInsightsFull {
+  impressions: string;
+  reach: string;
+  frequency: string;
+  clicks: string;
+  unique_clicks: string;
+  ctr: string;
+  unique_ctr: string;
+  spend: string;
+  cpc: string;
+  cpm: string;
+  cpp: string;
+  actions?: MetaAction[];
+  cost_per_action_type?: MetaAction[];
+  conversions?: MetaAction[];
+  quality_ranking?: string;
+  engagement_rate_ranking?: string;
+  conversion_rate_ranking?: string;
+  date_start: string;
+  date_stop: string;
+}
+
+export interface MetaInsightsTimeSeries {
+  impressions: string;
+  clicks: string;
+  spend: string;
+  ctr: string;
+  cpc: string;
+  reach: string;
+  date_start: string;
+  date_stop: string;
+}
+
+export type DatePreset =
+  | "today"
+  | "yesterday"
+  | "last_3d"
+  | "last_7d"
+  | "last_14d"
+  | "last_28d"
+  | "last_30d"
+  | "last_90d"
+  | "this_month"
+  | "last_month";
+
+export interface InsightParams {
+  datePreset?: DatePreset;
+  since?: string;
+  until?: string;
+}
+
+export type DashboardLevel = "accounts" | "account" | "campaign" | "adset" | "ad";
+
+export interface BreadcrumbItem {
+  level: DashboardLevel;
+  id: string;
+  label: string;
+}
+
 export interface MetaApiError {
   error: {
     message: string;

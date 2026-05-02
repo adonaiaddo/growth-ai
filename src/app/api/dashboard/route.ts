@@ -14,37 +14,11 @@ export async function GET() {
   try {
     const api = new MetaAPI(token);
     const accounts = await api.getAdAccounts();
-
-    if (accounts.length === 0) {
-      return NextResponse.json({ accounts: [], campaigns: [], adSets: [], ads: [] });
-    }
-
-    // Use first ad account
-    const adAccountId = accounts[0].id;
-
-    // Fetch sequentially to avoid redundant API calls
-    const campaigns = await api.getCampaigns(adAccountId).catch(() => []);
-
-    const adSetsByCampaign = await Promise.all(
-      campaigns.map((c) => api.getAdSets(c.id).catch(() => []))
-    );
-    const adSets = adSetsByCampaign.flat();
-
-    const adsByAdSet = await Promise.all(
-      adSets.map((s) => api.getAds(s.id).catch(() => []))
-    );
-    const ads = adsByAdSet.flat();
-
-    return NextResponse.json({
-      accounts,
-      campaigns,
-      adSets,
-      ads,
-    });
+    return NextResponse.json({ accounts });
   } catch (error) {
     console.error("Dashboard fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch dashboard data" },
+      { error: "Failed to fetch ad accounts" },
       { status: 500 }
     );
   }
