@@ -447,7 +447,7 @@ export class MetaAPI {
 
   /**
    * Upload an image to Meta's ad images library.
-   * Tries local cache first (for DALL-E images that may have expired URLs),
+   * Tries local cache first (for generated images),
    * then falls back to downloading from the URL.
    * Returns the image_hash needed for ad creatives.
    */

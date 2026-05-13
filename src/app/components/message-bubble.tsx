@@ -6,6 +6,7 @@ import { ToolResultCard } from "./tool-result-card";
 import { getToolDisplay } from "./tool-display-config";
 import { ToolIcon } from "./tool-icon";
 import { SourcesBar, type Source } from "./sources-bar";
+import { ImageLightbox } from "./image-lightbox";
 import { parseSuggestions } from "@/lib/parse-suggestions";
 
 /** Extract a clean domain from a URL string */
@@ -179,25 +180,23 @@ export function MessageBubble({ message }: { message: UIMessage }) {
               const result = toolPart.output as Record<string, unknown> | null;
               if (!result) return null;
 
-              // Generated images inline
+              // Generated images — thumbnail with click-to-expand lightbox
               if (
                 toolName === "generateAdImage" &&
                 result.type === "generated_image" &&
                 typeof result.url === "string"
               ) {
                 return (
-                  <div key={i} className="mt-3">
-                    <img
-                      src={result.url}
-                      alt="AI-generated ad image"
-                      className="rounded-lg max-w-full"
-                    />
-                    {typeof result.revisedPrompt === "string" && (
-                      <p className="mt-1 text-xs text-foreground-muted italic">
-                        {result.revisedPrompt}
-                      </p>
-                    )}
-                  </div>
+                  <ImageLightbox
+                    key={i}
+                    src={result.url}
+                    alt="AI-generated ad image"
+                    caption={
+                      typeof result.revisedPrompt === "string"
+                        ? result.revisedPrompt
+                        : undefined
+                    }
+                  />
                 );
               }
 

@@ -125,7 +125,7 @@ When generating ad copy, follow these rules precisely:
 
 11. **Design for mobile-first, sound-off.** 98% of Meta users are on mobile. Ads must work without audio.
 
-12. **Image style guidance for DALL-E:** Generate images that stop the scroll — high contrast, single focal point, faces/eyes when relevant, warm lighting. No text on images (Meta penalizes text-heavy visuals). Lifestyle > stock photo feel.
+12. **Image style guidance:** Generate images that stop the scroll — high contrast, single focal point, faces/eyes when relevant, warm lighting. No text on images (Meta penalizes text-heavy visuals). Lifestyle > stock photo feel.
 
 ## META API PARAMETER REFERENCE
 

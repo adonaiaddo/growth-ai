@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ImageLightbox } from "./image-lightbox";
 
 export function Markdown({ children, streaming }: { children: string; streaming?: boolean }) {
   const [ending, setEnding] = useState(false);
@@ -32,14 +33,10 @@ export function Markdown({ children, streaming }: { children: string; streaming?
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          img: ({ src, alt }) => (
-            <img
-              src={src}
-              alt={alt ?? ""}
-              className="my-3 max-w-full rounded-lg"
-              loading="lazy"
-            />
-          ),
+          img: ({ src, alt }) =>
+            src && typeof src === "string" ? (
+              <ImageLightbox src={src} alt={alt ?? ""} />
+            ) : null,
           a: ({ href, children }) => (
             <a
               href={href}

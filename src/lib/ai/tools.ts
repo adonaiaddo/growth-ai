@@ -157,7 +157,7 @@ export const generateAdCopy = tool({
 
 export const generateAdImage = tool({
   description:
-    "Generate an ad image using DALL-E 3. Creates a scroll-stopping ad visual optimized for Meta feeds. Describe exactly what you want — the prompt is sent directly to DALL-E 3.",
+    "Generate an ad image using GPT Image. Creates a scroll-stopping ad visual optimized for Meta feeds. Describe exactly what you want — the prompt is sent directly to the image model.",
   inputSchema: z.object({
     product: z.string().describe("The product or service to visualize"),
     style: z
@@ -173,13 +173,13 @@ export const generateAdImage = tool({
     aspectRatio: z
       .enum(["square", "landscape"])
       .optional()
-      .describe("Image aspect ratio: square (1024x1024, best for feed) or landscape (1792x1024, best for stories)"),
+      .describe("Image aspect ratio: square (1024x1024, best for feed) or landscape (1536x1024, best for stories)"),
   }),
   execute: async ({ product, style, mood, aspectRatio }) => {
     const imageStyle = style ?? "lifestyle product photography with a real human interacting with the product";
     const imageMood = mood ?? "warm, inviting, aspirational";
     const prompt = `${imageStyle}: ${product}. Mood: ${imageMood}. Shot on a high-end camera with natural lighting, shallow depth of field. Single clear focal point, high contrast between subject and background. The image should stop someone mid-scroll — visually striking and emotionally compelling. Absolutely NO text, words, letters, logos, or watermarks anywhere in the image. Clean composition, modern aesthetic.`;
-    const size = aspectRatio === "landscape" ? "1792x1024" : "1024x1024";
+    const size = aspectRatio === "landscape" ? "1536x1024" : "1024x1024";
 
     try {
       const result = await generateImage(prompt, size);

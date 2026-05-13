@@ -32,45 +32,44 @@ export function getCachedImage(localPath: string): Buffer | null {
 
 export async function generateImage(
   prompt: string,
-  size: "1024x1024" | "1792x1024" = "1024x1024"
+  size: "1024x1024" | "1536x1024" = "1024x1024"
 ): Promise<{ url: string; localPath: string; revisedPrompt: string }> {
   const client = getClient();
   const response = await client.images.generate({
-    model: "dall-e-3",
+    model: "gpt-image-1",
     prompt,
     n: 1,
     size,
-    quality: "standard",
+    quality: "high",
   });
 
   const data = response.data;
   if (!data || data.length === 0) {
-    throw new Error("No image data returned from DALL-E");
+    throw new Error("No image data returned from GPT Image");
   }
 
   const image = data[0];
-  const url = image.url!;
 
-  // Immediately download and cache the image before the URL expires
+  // gpt-image-1 returns base64 data — save directly to local cache
   mkdirSync(IMAGE_CACHE_DIR, { recursive: true });
-  const localPath = join(IMAGE_CACHE_DIR, `${randomUUID()}.png`);
+  const filename = `${randomUUID()}.png`;
+  const localPath = join(IMAGE_CACHE_DIR, filename);
 
-  try {
-    const res = await fetch(url);
-    if (res.ok) {
-      const buffer = Buffer.from(await res.arrayBuffer());
-      writeFileSync(localPath, buffer);
-      console.log(`[Creative] Image cached: ${localPath} (${buffer.length} bytes)`);
-    } else {
-      console.log(`[Creative] Warning: Could not cache image (HTTP ${res.status})`);
-    }
-  } catch (e) {
-    console.log(`[Creative] Warning: Could not cache image: ${e}`);
+  const b64 = image.b64_json;
+  if (!b64) {
+    throw new Error("No base64 image data in response");
   }
+
+  const buffer = Buffer.from(b64, "base64");
+  writeFileSync(localPath, buffer);
+  console.log(`[Creative] Image saved: ${localPath} (${buffer.length} bytes)`);
+
+  // Serve the cached image via local API route
+  const url = `/api/image/${filename}`;
 
   return {
     url,
     localPath,
-    revisedPrompt: image.revised_prompt ?? prompt,
+    revisedPrompt: prompt,
   };
 }
